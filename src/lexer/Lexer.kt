@@ -24,7 +24,6 @@ class Lexer(private val input: String) {
         return TokenStream(tokens)
     }
 
-    @Throws(LexerException::class)
     fun peekToken(): Token {
         val previousPosition = position
         val token = nextToken()
@@ -32,7 +31,6 @@ class Lexer(private val input: String) {
         return token
     }
 
-    @Throws(LexerException::class)
     fun nextToken(): Token {
         skipWhitespace()
         val char = peekChar()
