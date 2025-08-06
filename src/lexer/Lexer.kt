@@ -1,5 +1,7 @@
 package lexer
 
+import parser.TokenStream
+
 class Lexer(private val input: String) {
     private var position = 0
 
@@ -9,6 +11,18 @@ class Lexer(private val input: String) {
         ',' to Token.Comma,
         '=' to Token.Eq,
     )
+
+    fun tokenize(): TokenStream {
+        val tokens = mutableListOf<Token>()
+        while (true) {
+            val token = nextToken()
+            tokens.add(token)
+            if (token == Token.EOF) {
+                break
+            }
+        }
+        return TokenStream(tokens)
+    }
 
     @Throws(LexerException::class)
     fun peekToken(): Token {
@@ -87,6 +101,7 @@ class Lexer(private val input: String) {
             "iff" -> Token.Iff
             "eq" -> Token.Eq
             "neq" -> Token.Neq
+            "neg" -> Token.Not
             else -> throw LexerException("Unknown keyword '$identifier'")
         }
     }
