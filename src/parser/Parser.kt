@@ -2,6 +2,10 @@ package parser
 
 import ast.*
 import lexer.Token
+import mso.EdgeRelation
+import mso.ElementVariable
+import mso.SetVariable
+import mso.Variable
 
 class Parser(private val tokens: TokenStream) {
     fun parseFormula(): Formula {
