@@ -1,3 +1,4 @@
+import analysis.SemanticAnalyzer
 import graph.Edge
 import graph.Graph
 import graph.Vertex
@@ -24,5 +25,12 @@ fun main() {
     )
     val graph = Graph(vertices, edges)
 
-    println(modelCheck(graph, formula))
+    val semanticAnalyzer = SemanticAnalyzer()
+    val isValid = semanticAnalyzer.analyzeFormula(formula)
+    semanticAnalyzer.printErrors()
+    semanticAnalyzer.printWarnings()
+
+    if (isValid) {
+        println(modelCheck(graph, formula))
+    }
 }

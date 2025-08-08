@@ -1,6 +1,5 @@
 package ast
 
-import mso.ElementVariable
 import mso.Variable
 import mso.Relation
 
