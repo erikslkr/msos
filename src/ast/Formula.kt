@@ -1,5 +1,6 @@
 package ast
 
+import lexer.Span
 import mso.Variable
 import mso.Relation
 
@@ -34,39 +35,39 @@ enum class BinaryOperator(private val repr: String) {
 
 sealed class Formula {
     data class QuantifiedFormula(
-        val quantifier: Quantifier,
-        val variable: Variable,
-        val innerFormula: Formula,
+        val quantifier: Pair<Quantifier, Span>,
+        val variable: Pair<Variable, Span>,
+        val innerFormula: Pair<Formula, Span>,
     ) : Formula() {
         override fun toString(): String = "$quantifier$variable($innerFormula)"
     }
 
     data class BinaryFormula(
-        val connective: BinaryConnective,
-        val left: Formula,
-        val right: Formula,
+        val connective: Pair<BinaryConnective, Span>,
+        val left: Pair<Formula, Span>,
+        val right: Pair<Formula, Span>,
     ) : Formula() {
         override fun toString(): String = "($left) $connective ($right)"
     }
 
     data class UnaryFormula(
-        val connective: UnaryConnective,
-        val innerFormula: Formula,
+        val connective: Pair<UnaryConnective, Span>,
+        val innerFormula: Pair<Formula, Span>,
     ) : Formula() {
         override fun toString(): String = "$connective($innerFormula)"
     }
 
     data class BinaryPredicate(
-        val operator: BinaryOperator,
-        val left: Variable,
-        val right: Variable,
+        val operator: Pair<BinaryOperator, Span>,
+        val left: Pair<Variable, Span>,
+        val right: Pair<Variable, Span>,
     ) : Formula() {
         override fun toString(): String = "$left $operator $right"
     }
 
     data class RelationPredicate(
-        val relation: Relation,
-        val arguments: List<Variable>,
+        val relation: Pair<Relation, Span>,
+        val arguments: List<Pair<Variable, Span>>,
     ) : Formula() {
         override fun toString(): String = "$relation(${arguments.joinToString(",")})"
     }

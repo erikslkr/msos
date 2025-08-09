@@ -6,10 +6,10 @@ class Lexer(private val input: String) {
     private var position = 0
 
     private val singleCharTokens = mapOf(
-        '(' to Token.LParen,
-        ')' to Token.RParen,
-        ',' to Token.Comma,
-        '=' to Token.Eq,
+        '(' to TokenType.LParen,
+        ')' to TokenType.RParen,
+        ',' to TokenType.Comma,
+        '=' to TokenType.Eq,
     )
 
     fun tokenize(): TokenStream {
@@ -17,7 +17,7 @@ class Lexer(private val input: String) {
         while (true) {
             val token = nextToken()
             tokens.add(token)
-            if (token == Token.EOF) {
+            if (token.tokenType == TokenType.EOF) {
                 break
             }
         }
@@ -35,10 +35,12 @@ class Lexer(private val input: String) {
         skipWhitespace()
         val char = peekChar()
         singleCharTokens[char]?.let {
+            val span = Span(position, position + 1)
             nextChar()
-            return it
+            return Token(it, span)
         }
-        return when (char) {
+        val startPosition = position
+        val tokenType = when (char) {
             '\\' -> {
                 nextChar()
                 readKeyword()
@@ -47,23 +49,24 @@ class Lexer(private val input: String) {
                 nextChar()
                 if (peekChar() == '=') {
                     nextChar()
-                    Token.Neq
+                    TokenType.Neq
                 } else {
-                    Token.Not
+                    TokenType.Not
                 }
             }
-            null -> Token.EOF
+            null -> TokenType.EOF
             else -> {
                 val identifier = readIdentifier() ?: throw LexerException("Illegal character '${char}'")
                 if (identifier == "E") {
-                    Token.E
+                    TokenType.E
                 } else if (identifier[0].isLowerCase()) {
-                    Token.ElementVariable(identifier)
+                    TokenType.ElementVariable(identifier)
                 } else {
-                    Token.SetVariable(identifier)
+                    TokenType.SetVariable(identifier)
                 }
             }
         }
+        return Token(tokenType, Span(startPosition, position))
     }
 
     private fun nextChar(): Char? {
@@ -88,18 +91,18 @@ class Lexer(private val input: String) {
         }
     }
 
-    private fun readKeyword(): Token {
+    private fun readKeyword(): TokenType {
         val identifier = readIdentifier() ?: throw LexerException("Expected keyword after '\\'")
         return when (identifier) {
-            "exists" -> Token.Exists
-            "forall" -> Token.Forall
-            "land" -> Token.And
-            "lor" -> Token.Or
-            "implies" -> Token.Implies
-            "iff" -> Token.Iff
-            "eq" -> Token.Eq
-            "neq" -> Token.Neq
-            "neg" -> Token.Not
+            "exists" -> TokenType.Exists
+            "forall" -> TokenType.Forall
+            "land" -> TokenType.And
+            "lor" -> TokenType.Or
+            "implies" -> TokenType.Implies
+            "iff" -> TokenType.Iff
+            "eq" -> TokenType.Eq
+            "neq" -> TokenType.Neq
+            "neg" -> TokenType.Not
             else -> throw LexerException("Unknown keyword '$identifier'")
         }
     }

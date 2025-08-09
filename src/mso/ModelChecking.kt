@@ -15,14 +15,15 @@ fun modelCheck(graph: Graph, formula: Formula): Boolean {
 fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean {
     return when (formula) {
         is Formula.QuantifiedFormula -> {
-            when (formula.quantifier) {
+            when (formula.quantifier.first) {
                 Quantifier.EXISTENTIAL -> {
-                    when (formula.variable) {
+                    val variable = formula.variable.first
+                    when (variable) {
                         is SetVariable -> {
                             for (vertexSet in graph.vertexSets()) {
-                                assignment.assignSet(formula.variable, vertexSet)
-                                modelCheck(graph, formula.innerFormula, assignment).let {
-                                    assignment.unassignSet(formula.variable)
+                                assignment.assignSet(variable, vertexSet)
+                                modelCheck(graph, formula.innerFormula.first, assignment).let {
+                                    assignment.unassignSet(variable)
                                     if (it) {
                                         return true
                                     }
@@ -32,9 +33,9 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
                         }
                         is ElementVariable -> {
                             for (vertex in graph.vertices) {
-                                assignment.assignElement(formula.variable, vertex)
-                                modelCheck(graph, formula.innerFormula, assignment).let {
-                                    assignment.unassignElement(formula.variable)
+                                assignment.assignElement(variable, vertex)
+                                modelCheck(graph, formula.innerFormula.first, assignment).let {
+                                    assignment.unassignElement(variable)
                                     if (it) {
                                         return true
                                     }
@@ -45,12 +46,13 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
                     }
                 }
                 Quantifier.UNIVERSAL -> {
-                    when (formula.variable) {
+                    val variable = formula.variable.first
+                    when (variable) {
                         is SetVariable -> {
                             for (vertexSet in graph.vertexSets()) {
-                                assignment.assignSet(formula.variable, vertexSet)
-                                modelCheck(graph, formula.innerFormula, assignment).let {
-                                    assignment.unassignSet(formula.variable)
+                                assignment.assignSet(variable, vertexSet)
+                                modelCheck(graph, formula.innerFormula.first, assignment).let {
+                                    assignment.unassignSet(variable)
                                     if (!it) {
                                         return false
                                     }
@@ -60,9 +62,9 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
                         }
                         is ElementVariable -> {
                             for (vertex in graph.vertices) {
-                                assignment.assignElement(formula.variable, vertex)
-                                modelCheck(graph, formula.innerFormula, assignment).let {
-                                    assignment.unassignElement(formula.variable)
+                                assignment.assignElement(variable, vertex)
+                                modelCheck(graph, formula.innerFormula.first, assignment).let {
+                                    assignment.unassignElement(variable)
                                     if (!it) {
                                         return false
                                     }
@@ -75,62 +77,65 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
             }
         }
         is Formula.BinaryFormula -> {
-            when (formula.connective) {
+            when (formula.connective.first) {
                 BinaryConnective.CONJUNCTION -> {
-                    val left = modelCheck(graph, formula.left, assignment)
+                    val left = modelCheck(graph, formula.left.first, assignment)
                     if (!left) {
                         return false
                     }
-                    modelCheck(graph, formula.right, assignment)
+                    modelCheck(graph, formula.right.first, assignment)
                 }
                 BinaryConnective.DISJUNCTION -> {
-                    val left = modelCheck(graph, formula.left, assignment)
+                    val left = modelCheck(graph, formula.left.first, assignment)
                     if (left) {
                         return true
                     }
-                    modelCheck(graph, formula.right, assignment)
+                    modelCheck(graph, formula.right.first, assignment)
                 }
                 BinaryConnective.IMPLICATION -> {
-                    val left = modelCheck(graph, formula.left, assignment)
+                    val left = modelCheck(graph, formula.left.first, assignment)
                     if (!left) {
                         return true
                     }
-                    modelCheck(graph, formula.right, assignment)
+                    modelCheck(graph, formula.right.first, assignment)
                 }
                 BinaryConnective.BIIMPLICATION -> {
-                    val left = modelCheck(graph, formula.left, assignment)
-                    val right = modelCheck(graph, formula.right, assignment)
+                    val left = modelCheck(graph, formula.left.first, assignment)
+                    val right = modelCheck(graph, formula.right.first, assignment)
                     left == right
                 }
             }
         }
         is Formula.UnaryFormula -> {
-            when (formula.connective) {
+            when (formula.connective.first) {
                 UnaryConnective.NEGATION -> {
-                    !modelCheck(graph, formula.innerFormula, assignment)
+                    !modelCheck(graph, formula.innerFormula.first, assignment)
                 }
             }
         }
         is Formula.BinaryPredicate -> {
-            when (formula.left) {
+            val leftVariable = formula.left.first
+            when (leftVariable) {
                 is ElementVariable -> {
-                    when (formula.right) {
+                    val rightVariable = formula.right.first
+                    when (rightVariable) {
                         is ElementVariable -> {
-                            when (formula.operator) {
-                                BinaryOperator.EQ -> assignment.getElement(formula.left) == assignment.getElement(formula.right)
-                                BinaryOperator.NEQ -> assignment.getElement(formula.left) != assignment.getElement(formula.right)
+                            when (formula.operator.first) {
+                                BinaryOperator.EQ -> assignment.getElement(leftVariable) == assignment.getElement(rightVariable)
+                                BinaryOperator.NEQ -> assignment.getElement(leftVariable) != assignment.getElement(rightVariable)
                             }
                         }
                         is SetVariable -> throw RuntimeException("'=' and '≠' are not supported between set variables and element variables")
                     }
                 }
                 is SetVariable -> {
-                    when (formula.right) {
+                    val rightVariable = formula.right.first
+                    when (rightVariable) {
                         is ElementVariable -> throw RuntimeException("'=' and '≠' are not supported between set variables and element variables")
                         is SetVariable -> {
-                            when (formula.operator) {
-                                BinaryOperator.EQ -> assignment.getSet(formula.left) == assignment.getSet(formula.right)
-                                BinaryOperator.NEQ -> assignment.getSet(formula.left) != assignment.getSet(formula.right)
+                            when (formula.operator.first) {
+                                BinaryOperator.EQ -> assignment.getSet(leftVariable) == assignment.getSet(rightVariable)
+                                BinaryOperator.NEQ -> assignment.getSet(leftVariable) != assignment.getSet(rightVariable)
                             }
                         }
                     }
@@ -138,20 +143,15 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
             }
         }
         is Formula.RelationPredicate -> {
-            when (formula.relation) {
+            val relation = formula.relation.first
+            when (relation) {
                 EdgeRelation -> {
-                    if (formula.arguments.size != 2) {
-                        throw RuntimeException("Expected 2 arguments for 'E', but got ${formula.arguments.size}")
-                    }
-                    val vertices = formula.arguments.map { assignment.getElement(it as ElementVariable) }.toSet()
+                    val vertices = formula.arguments.map { assignment.getElement(it.first as ElementVariable) }.toSet()
                     graph.edges.map(Edge::toSet).any { it == vertices }
                 }
                 is SetVariable -> {
-                    if (formula.arguments.size != 1) {
-                        throw RuntimeException("Expected 1 argument for '${formula.relation.name}', but got ${formula.arguments.size}")
-                    }
-                    val value = assignment.getElement(formula.arguments[0] as ElementVariable)
-                    value in assignment.getSet(formula.relation)
+                    val value = assignment.getElement(formula.arguments[0].first as ElementVariable)
+                    value in assignment.getSet(relation)
                 }
             }
         }

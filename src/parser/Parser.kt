@@ -1,135 +1,152 @@
 package parser
 
 import ast.*
-import lexer.Token
+import lexer.Span
+import lexer.TokenType
 import mso.EdgeRelation
 import mso.ElementVariable
 import mso.SetVariable
 import mso.Variable
 
 class Parser(private val tokens: TokenStream) {
-    fun parseFormula(): Formula {
+    fun parseFormula(): Pair<Formula, Span> {
         return parseBinary()
     }
 
-    fun parseBinary(): Formula {
-        var left = parseUnary()
+    fun parseBinary(): Pair<Formula, Span> {
+        var (left, leftSpan) = parseUnary()
         while (true) {
             val token = tokens.peek()
-            val connective = when (token) {
-                Token.And -> BinaryConnective.CONJUNCTION
-                Token.Or -> BinaryConnective.DISJUNCTION
-                Token.Implies -> BinaryConnective.IMPLICATION
-                Token.Iff -> BinaryConnective.BIIMPLICATION
-                else -> return left
-            }
+            val connective = when (token.tokenType) {
+                TokenType.And -> BinaryConnective.CONJUNCTION
+                TokenType.Or -> BinaryConnective.DISJUNCTION
+                TokenType.Implies -> BinaryConnective.IMPLICATION
+                TokenType.Iff -> BinaryConnective.BIIMPLICATION
+                else -> return left to leftSpan
+            } to token.span
             tokens.next()
-            val right = parseUnary()
-            left = Formula.BinaryFormula(connective, left, right)
+            val (right, rightSpan) = parseUnary()
+            left = Formula.BinaryFormula(connective, left to leftSpan, right to rightSpan)
+            leftSpan = leftSpan join rightSpan
         }
     }
 
-    fun parseUnary(): Formula {
+    fun parseUnary(): Pair<Formula, Span> {
         val token = tokens.peek()
-        return when (token) {
-            Token.Not -> {
+        return when (token.tokenType) {
+            TokenType.Not -> {
                 tokens.next()
-                val innerFormula = parseUnary()
-                Formula.UnaryFormula(UnaryConnective.NEGATION, innerFormula)
+                val (innerFormula, innerSpan) = parseUnary()
+                Formula.UnaryFormula(UnaryConnective.NEGATION to token.span, innerFormula to innerSpan) to (token.span join innerSpan)
             }
             else -> parseQuantified()
         }
     }
 
-    fun parseQuantified(): Formula {
+    fun parseQuantified(): Pair<Formula, Span> {
         val token = tokens.peek()
-        return when (token) {
-            Token.Exists, Token.Forall -> {
+        return when (token.tokenType) {
+            TokenType.Exists, TokenType.Forall -> {
                 tokens.next()
-                val quantifier = if (token == Token.Exists) Quantifier.EXISTENTIAL else Quantifier.UNIVERSAL
-                val variable = parseVariable()
-                val inner = parseQuantified()
-                Formula.QuantifiedFormula(quantifier, variable, inner)
+                val quantifier = if (token.tokenType == TokenType.Exists) {
+                    Quantifier.EXISTENTIAL
+                } else {
+                    Quantifier.UNIVERSAL
+                } to token.span
+                val variableWithSpan = parseVariable()
+                val (inner, innerSpan) = parseQuantified()
+                Formula.QuantifiedFormula(quantifier, variableWithSpan, inner to innerSpan) to (token.span join innerSpan)
             }
             else -> parsePredicate()
         }
     }
 
-    fun parsePredicate(): Formula {
+    fun parsePredicate(): Pair<Formula, Span> {
         val token = tokens.peek()
-        return when (token) {
-            Token.E -> {
+        return when (token.tokenType) {
+            TokenType.E -> {
                 tokens.next()
-                tokens.expect(Token.LParen)
-                val arguments = parseGenericList(Token.Comma, Token.RParen) { parseVariable() }
-                Formula.RelationPredicate(EdgeRelation, arguments)
+                tokens.expect(TokenType.LParen)
+                val (arguments, parenSpan) = parseGenericList(TokenType.Comma, TokenType.RParen) { parseVariable() }
+                Formula.RelationPredicate(EdgeRelation to token.span, arguments) to (token.span join parenSpan)
             }
-            is Token.SetVariable -> {
-                val leftVariable = parseVariable() as SetVariable
+            is TokenType.SetVariable -> {
+                val (leftVariable, leftSpan) = parseVariable()
                 val token2 = tokens.next()
-                when (token2) {
-                    Token.Eq, Token.Neq -> {
-                        val operator = if (token2 == Token.Eq) BinaryOperator.EQ else BinaryOperator.NEQ
-                        val rightVariable = parseVariable()
-                        Formula.BinaryPredicate(operator, leftVariable, rightVariable)
+                when (token2.tokenType) {
+                    TokenType.Eq, TokenType.Neq -> {
+                        val operator = if (token2.tokenType == TokenType.Eq) {
+                            BinaryOperator.EQ
+                        } else {
+                            BinaryOperator.NEQ
+                        } to token2.span
+                        val (rightVariable, rightSpan) = parseVariable()
+                        Formula.BinaryPredicate(operator, leftVariable to leftSpan, rightVariable to rightSpan) to (leftSpan join rightSpan)
                     }
-                    Token.LParen -> {
-                        val arguments = parseGenericList(Token.Comma, Token.RParen) { parseVariable() }
-                        Formula.RelationPredicate(leftVariable, arguments)
+                    TokenType.LParen -> {
+                        val (arguments, parenSpan) = parseGenericList(TokenType.Comma, TokenType.RParen) { parseVariable() }
+                        Formula.RelationPredicate((leftVariable as SetVariable) to leftSpan, arguments) to (token.span join parenSpan)
                     }
-                    else -> throw ParserException("Expected '(' or binary operator, but found '$token2'")
+                    else -> throw ParserException("Expected '(' or binary operator, but found '${token2.tokenType}'")
                 }
             }
-            is Token.ElementVariable -> {
-                val leftVariable = parseVariable()
+            is TokenType.ElementVariable -> {
+                val (leftVariable, leftSpan) = parseVariable()
                 val token2 = tokens.next()
-                when (token2) {
-                    Token.Eq, Token.Neq -> {
-                        val operator = if (token2 == Token.Eq) BinaryOperator.EQ else BinaryOperator.NEQ
-                        val rightVariable = parseVariable()
-                        Formula.BinaryPredicate(operator, leftVariable, rightVariable)
+                when (token2.tokenType) {
+                    TokenType.Eq, TokenType.Neq -> {
+                        val operator = if (token2.tokenType == TokenType.Eq) {
+                            BinaryOperator.EQ
+                        } else {
+                            BinaryOperator.NEQ
+                        } to token2.span
+                        val (rightVariable, rightSpan) = parseVariable()
+                        Formula.BinaryPredicate(operator, leftVariable to leftSpan, rightVariable to rightSpan) to (leftSpan join rightSpan)
                     }
-                    else -> throw ParserException("Expected binary operator, but found '$token2'")
+                    else -> throw ParserException("Expected binary operator, but found '${token2.tokenType}'")
                 }
             }
             else -> parseParenthesized()
         }
     }
 
-    fun parseParenthesized(): Formula {
-        tokens.expect(Token.LParen)
-        val formula = parseFormula()
-        tokens.expect(Token.RParen)
-        return formula
+    fun parseParenthesized(): Pair<Formula, Span> {
+        val lparen = tokens.expect(TokenType.LParen)
+        val (formula, _) = parseFormula()
+        val rparen = tokens.expect(TokenType.RParen)
+        return formula to (lparen.span join rparen.span)
     }
 
-    fun parseVariable(): Variable {
+    fun parseVariable(): Pair<Variable, Span> {
         val token = tokens.next()
-        return when (token) {
-            is Token.SetVariable -> SetVariable(token.identifier)
-            is Token.ElementVariable -> ElementVariable(token.identifier)
+        return when (token.tokenType) {
+            is TokenType.SetVariable -> SetVariable(token.tokenType.identifier) to token.span
+            is TokenType.ElementVariable -> ElementVariable(token.tokenType.identifier) to token.span
             else -> throw ParserException("Expected variable, but found '$token'")
         }
     }
 
     fun <T> parseGenericList(
-        separator: Token,
-        terminator: Token,
-        listEntrySupplier: () -> T,
-    ): List<T> {
-        val elements = mutableListOf<T>()
+        separator: TokenType,
+        terminator: TokenType,
+        listEntrySupplier: () -> Pair<T, Span>,
+    ): Pair<List<Pair<T, Span>>, Span> {
+        val elements = mutableListOf<Pair<T, Span>>()
         var token = tokens.peek()
-        while (token != Token.EOF) {
+        while (token != TokenType.EOF) {
             val element = listEntrySupplier()
             elements.add(element)
-            when (tokens.next()) {
+            val token2 = tokens.next()
+            when (token2.tokenType) {
                 separator -> {
                     token = tokens.peek()
                     continue
                 }
-                terminator -> return elements
-                Token.EOF -> break
-                else -> throw ParserException("Expected '$separator' or '$terminator', but found '$token'")
+                terminator -> {
+                    return elements to token2.span
+                }
+                TokenType.EOF -> break
+                else -> throw ParserException("Expected '$separator' or '$terminator', but found '${token2.tokenType}'")
             }
         }
         throw ParserException("Missing '$terminator'")
