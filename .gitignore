@@ -3,6 +3,9 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+.idea
+*.iml
+
 ### Kotlin ###
 .kotlin
 
@@ -31,5 +34,8 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-.idea
-*.iml
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
