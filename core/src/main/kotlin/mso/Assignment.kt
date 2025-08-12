@@ -1,12 +1,12 @@
 package mso
 
-import graph.Vertex
+import graph.GraphVertex
 
 class Assignment {
-    private val elementAssignments = HashMap<String, Vertex>()
-    private val setAssignments = HashMap<String, Set<Vertex>>()
+    private val elementAssignments = HashMap<String, GraphVertex>()
+    private val setAssignments = HashMap<String, Set<GraphVertex>>()
 
-    fun assignElement(variable: ElementVariable, value: Vertex) {
+    fun assignElement(variable: ElementVariable, value: GraphVertex) {
         elementAssignments[variable.name] = value
     }
 
@@ -14,7 +14,7 @@ class Assignment {
         elementAssignments.remove(variable.name)
     }
 
-    fun assignSet(variable: SetVariable, value: Set<Vertex>) {
+    fun assignSet(variable: SetVariable, value: Set<GraphVertex>) {
         setAssignments[variable.name] = value
     }
 
@@ -22,11 +22,11 @@ class Assignment {
         setAssignments.remove(variable.name)
     }
 
-    fun getElement(variable: ElementVariable): Vertex {
+    fun getElement(variable: ElementVariable): GraphVertex {
         return elementAssignments[variable.name] ?: throw RuntimeException("Unassigned variable '$variable'")
     }
 
-    fun getSet(variable: SetVariable): Set<Vertex> {
+    fun getSet(variable: SetVariable): Set<GraphVertex> {
         return setAssignments[variable.name] ?: throw RuntimeException("Unassigned variable '$variable'")
     }
 }

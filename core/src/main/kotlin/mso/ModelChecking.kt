@@ -5,8 +5,8 @@ import ast.BinaryOperator
 import ast.Formula
 import ast.Quantifier
 import ast.UnaryConnective
-import graph.Edge
 import graph.Graph
+import graph.GraphEdge
 
 fun modelCheck(graph: Graph, formula: Formula): Boolean {
     return modelCheck(graph, formula, Assignment())
@@ -17,10 +17,9 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
         is Formula.QuantifiedFormula -> {
             when (formula.quantifier.first) {
                 Quantifier.EXISTENTIAL -> {
-                    val variable = formula.variable.first
-                    when (variable) {
+                    when (val variable = formula.variable.first) {
                         is SetVariable -> {
-                            for (vertexSet in graph.vertexSets()) {
+                            for (vertexSet in graph.allVertexSubsets) {
                                 assignment.assignSet(variable, vertexSet)
                                 modelCheck(graph, formula.innerFormula.first, assignment).let {
                                     assignment.unassignSet(variable)
@@ -46,10 +45,9 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
                     }
                 }
                 Quantifier.UNIVERSAL -> {
-                    val variable = formula.variable.first
-                    when (variable) {
+                    when (val variable = formula.variable.first) {
                         is SetVariable -> {
-                            for (vertexSet in graph.vertexSets()) {
+                            for (vertexSet in graph.allVertexSubsets) {
                                 assignment.assignSet(variable, vertexSet)
                                 modelCheck(graph, formula.innerFormula.first, assignment).let {
                                     assignment.unassignSet(variable)
@@ -114,11 +112,9 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
             }
         }
         is Formula.BinaryPredicate -> {
-            val leftVariable = formula.left.first
-            when (leftVariable) {
+            when (val leftVariable = formula.left.first) {
                 is ElementVariable -> {
-                    val rightVariable = formula.right.first
-                    when (rightVariable) {
+                    when (val rightVariable = formula.right.first) {
                         is ElementVariable -> {
                             when (formula.operator.first) {
                                 BinaryOperator.EQ -> assignment.getElement(leftVariable) == assignment.getElement(rightVariable)
@@ -129,8 +125,7 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
                     }
                 }
                 is SetVariable -> {
-                    val rightVariable = formula.right.first
-                    when (rightVariable) {
+                    when (val rightVariable = formula.right.first) {
                         is ElementVariable -> throw RuntimeException("'=' and '≠' are not supported between set variables and element variables")
                         is SetVariable -> {
                             when (formula.operator.first) {
@@ -143,11 +138,10 @@ fun modelCheck(graph: Graph, formula: Formula, assignment: Assignment): Boolean 
             }
         }
         is Formula.RelationPredicate -> {
-            val relation = formula.relation.first
-            when (relation) {
+            when (val relation = formula.relation.first) {
                 EdgeRelation -> {
                     val vertices = formula.arguments.map { assignment.getElement(it.first as ElementVariable) }.toSet()
-                    graph.edges.map(Edge::toSet).any { it == vertices }
+                    graph.edges.map(GraphEdge::toSet).any { it == vertices }
                 }
                 is SetVariable -> {
                     val value = assignment.getElement(formula.arguments[0].first as ElementVariable)

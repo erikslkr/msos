@@ -1,7 +1,7 @@
 import analysis.SemanticAnalyzer
-import graph.Edge
 import graph.Graph
-import graph.Vertex
+import graph.GraphEdge
+import graph.GraphVertex
 import lexer.Lexer
 import mso.modelCheck
 import parser.Parser
@@ -13,15 +13,15 @@ fun main() {
     val parser = Parser(tokenStream)
     val (formula, formulaSpan) = parser.parseFormula()
 
-    val vertices = setOf(Vertex("a"), Vertex("b"), Vertex("c"), Vertex("d"), Vertex("e"), Vertex("f"))
+    val vertices = setOf(GraphVertex("a"), GraphVertex("b"), GraphVertex("c"), GraphVertex("d"), GraphVertex("e"), GraphVertex("f"))
     val edges = setOf(
-        Edge(Vertex("a"), Vertex("b")),
-        Edge(Vertex("a"), Vertex("c")),
-        Edge(Vertex("a"), Vertex("d")),
-        Edge(Vertex("b"), Vertex("c")),
-        Edge(Vertex("b"), Vertex("d")),
-        Edge(Vertex("c"), Vertex("d")),
-        Edge(Vertex("e"), Vertex("f")),
+        GraphEdge(GraphVertex("a"), GraphVertex("b")),
+        GraphEdge(GraphVertex("a"), GraphVertex("c")),
+        GraphEdge(GraphVertex("a"), GraphVertex("d")),
+        GraphEdge(GraphVertex("b"), GraphVertex("c")),
+        GraphEdge(GraphVertex("b"), GraphVertex("d")),
+        GraphEdge(GraphVertex("c"), GraphVertex("d")),
+        GraphEdge(GraphVertex("e"), GraphVertex("f")),
     )
     val graph = Graph(vertices, edges)
 
