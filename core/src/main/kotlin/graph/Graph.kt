@@ -37,9 +37,9 @@ class Graph() {
 
     val allVertexSubsets: Sequence<Set<GraphVertex>>
         get() = sequence {
-            for (mask in 0 until (1L shl vertices.size)) {
+            for (mask in 0 until (1L shl _vertices.size)) {
                 val set = mutableSetOf<GraphVertex>()
-                for ((index, vertex) in vertices.withIndex()) {
+                for ((index, vertex) in _vertices.withIndex()) {
                     if ((mask shr index) and 1L == 1L) {
                         set.add(vertex)
                     }
