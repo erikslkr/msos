@@ -24,7 +24,7 @@ class Graph() {
         get() = _vertices
 
     /**
-     * [Edge][GraphEdge] set of the graph.
+     * [Edge][GraphEdge] set of the graph
      */
     val edges: Set<GraphEdge>
         get() = _edges
@@ -35,9 +35,21 @@ class Graph() {
     val adj: Map<GraphVertex, Set<GraphVertex>>
         get() = _adj
 
+    /**
+     * The number of vertices in the graph
+     */
+    val n: Int
+        get() = _vertices.size
+
+    /**
+     * The number of edges in the graph
+     */
+    val m: Int
+        get() = _edges.size
+
     val allVertexSubsets: Sequence<Set<GraphVertex>>
         get() = sequence {
-            for (mask in 0 until (1L shl _vertices.size)) {
+            for (mask in 0 until (1L shl n)) {
                 val set = mutableSetOf<GraphVertex>()
                 for ((index, vertex) in _vertices.withIndex()) {
                     if ((mask shr index) and 1L == 1L) {
@@ -314,15 +326,15 @@ class Graph() {
      * @throws IllegalArgumentException If [startIndex] is out of bounds for [vertexList]
      */
     fun bfs(vertexList: List<GraphVertex>, startIndex: Int, cycleDetection: Boolean = false): BooleanArray? {
-        require(vertexList.size == _vertices.size && vertexList.toSet() == _vertices) {
+        require(vertexList.size == n && vertexList.toSet() == _vertices) {
             "Parameter 'vertexList' must be a total ordering of 'vertices'"
         }
-        require(0 <= startIndex && startIndex < vertexList.size) {
+        require(startIndex in 0 until n) {
             "'startIndex' is out of bounds"
         }
         val vertexList = _vertices.toList()
         val vertexToIndex = vertexList.withIndex().associate { it.value to it.index }
-        val visited = BooleanArray(vertexList.size)
+        val visited = BooleanArray(n)
         val queue = ArrayDeque<Int>()
         queue.add(startIndex)
         while (queue.isNotEmpty()) {
@@ -365,7 +377,7 @@ class Graph() {
         var firstUnvisited = visited.indexOfFirst { !it }
         while (firstUnvisited != -1) {
             val newVisited = bfs(vertexList, firstUnvisited, cycleDetection = true) ?: return false
-            for (i in 0 until visited.size) {
+            for (i in 0 until n) {
                 visited[i] = visited[i] || newVisited[i]
             }
             firstUnvisited = visited.indexOfFirst { !it }
@@ -381,5 +393,28 @@ class Graph() {
         val vertexList = _vertices.toList()
         val visited = bfs(vertexList, 0, cycleDetection = true) ?: return false
         return visited.all { it }
+    }
+
+    /**
+     * Returns the complement graph, i.e. a graph with the same vertex set, where any two vertices are
+     * adjacent if and only if they were not adjacent in the original graph.
+     */
+    fun complement(): Graph {
+        val graph = Graph()
+        val vertexList = mutableListOf<GraphVertex>()
+        for (vertex in _vertices) {
+            graph.addVertex(vertex)
+            vertexList.add(vertex)
+        }
+        for (i in 0 until n) {
+            for (j in (i + 1) until n) {
+                val v1 = vertexList[i]
+                val v2 = vertexList[j]
+                if (!hasEdge(v1, v2)) {
+                    graph.addEdge(v1, v2)
+                }
+            }
+        }
+        return graph
     }
 }
