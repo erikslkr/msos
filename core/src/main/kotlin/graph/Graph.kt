@@ -298,4 +298,88 @@ class Graph() {
             addEdge(newVertex, v)
         }
     }
+
+    /**
+     * Performs breadth-first search on the graph, starting from the vertex that is at position [startIndex]
+     * in the [vertexList] list.
+     *
+     * @param vertexList A total ordering of the graph's [vertices], which can for example be obtained via `vertices.toList()`.
+     * This is necessary to coherently map vertices to indices for the boolean array returned by the function.
+     * @param startIndex The index of the starting vertex in [vertexList]
+     * @param cycleDetection If set to `true`, the BFS will terminate early in case a cycle is detected, and return `null`
+     * @return A boolean array `visited`, storing for every vertex whether it was visited by the BFS or not. For example,
+     * `visited[1]` will be `true` if and only if the vertex `vertexList[1]` was visited by the BFS.
+     * Additionally, `null` will be returned if (and only if) a cycle is detected and `cycleDetection` is set to true.
+     * @throws IllegalArgumentException If [vertexList] is not a total ordering of [vertices]
+     * @throws IllegalArgumentException If [startIndex] is out of bounds for [vertexList]
+     */
+    fun bfs(vertexList: List<GraphVertex>, startIndex: Int, cycleDetection: Boolean = false): BooleanArray? {
+        require(vertexList.size == _vertices.size && vertexList.toSet() == _vertices) {
+            "Parameter 'vertexList' must be a total ordering of 'vertices'"
+        }
+        require(0 <= startIndex && startIndex < vertexList.size) {
+            "'startIndex' is out of bounds"
+        }
+        val vertexList = _vertices.toList()
+        val vertexToIndex = vertexList.withIndex().associate { it.value to it.index }
+        val visited = BooleanArray(vertexList.size)
+        val queue = ArrayDeque<Int>()
+        queue.add(startIndex)
+        while (queue.isNotEmpty()) {
+            val index = queue.removeFirst()
+            if (visited[index]) {
+                if (cycleDetection) {
+                    return null
+                } else {
+                    continue
+                }
+            }
+            visited[index] = true
+            for (neighbor in _adj[vertexList[index]]!!) {
+                val neighborIndex = vertexToIndex[neighbor]!!
+                if (!visited[neighborIndex]) {
+                    queue.addLast(neighborIndex)
+                }
+            }
+        }
+        return visited
+    }
+
+    /**
+     * Returns `true` if and only if the graph is connected, i.e. there is a path between every pair of vertices.
+     * Uses breadth-first search (BFS).
+     */
+    fun isConnected(): Boolean {
+        val vertexList = _vertices.toList()
+        val visited = bfs(vertexList, 0)
+        return visited!!.all { it }
+    }
+
+    /**
+     * Returns `true` if and only if the graph is acyclic (a forest).
+     * Uses breadth-first search (BFS).
+     */
+    fun isAcyclic(): Boolean {
+        val vertexList = _vertices.toList()
+        val visited = bfs(vertexList, 0, cycleDetection = true) ?: return false
+        var firstUnvisited = visited.indexOfFirst { !it }
+        while (firstUnvisited != -1) {
+            val newVisited = bfs(vertexList, firstUnvisited, cycleDetection = true) ?: return false
+            for (i in 0 until visited.size) {
+                visited[i] = visited[i] || newVisited[i]
+            }
+            firstUnvisited = visited.indexOfFirst { !it }
+        }
+        return true
+    }
+
+    /**
+     * Returns `true` if and only if the graph is a tree, i.e. connected and acyclic.
+     * Uses breadth-first search (BFS).
+     */
+    fun isTree(): Boolean {
+        val vertexList = _vertices.toList()
+        val visited = bfs(vertexList, 0, cycleDetection = true) ?: return false
+        return visited.all { it }
+    }
 }
