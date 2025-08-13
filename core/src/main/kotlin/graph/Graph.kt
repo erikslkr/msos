@@ -259,10 +259,11 @@ class Graph() {
         require(hasVertex(vertex)) {
             "Vertex '$vertex' does not exist"
         }
-        val neighborhood = _adj[vertex]!!
-        for (v1 in neighborhood) {
-            for (v2 in neighborhood) {
-                if (v1 == v2) continue
+        val neighborhood = _adj[vertex]!!.toList()
+        for (i in neighborhood.indices) {
+            for (j in (i + 1) until neighborhood.size) {
+                val v1 = neighborhood[i]
+                val v2 = neighborhood[j]
                 if (!hasEdge(v1, v2)) {
                     addEdge(v1, v2)
                 }
@@ -286,7 +287,7 @@ class Graph() {
     /**
      * Contracts an edge between two different vertices, i.e. removes it and merges the two vertices into a new one.
      * The new vertex is adjacent to all vertices that the incident vertices of the edge were adjacent to.
-     * The new vertex has the id `from.id + to.id`, followed by as many primes (`'`) as
+     * The new vertex has the id `from.id + "_" + to.id`, followed by as many primes (`'`) as
      * necessary to make the id unique in the graph.
      *
      * @throws IllegalArgumentException If both vertices are the same
@@ -297,10 +298,10 @@ class Graph() {
         require(hasEdge(from, to)) {
             "Edge '$edge' does not exist"
         }
-        val neighborhood = _adj[from]!! + _adj[from]!! - from - to
+        val neighborhood = _adj[from]!! + _adj[to]!! - from - to
         removeVertex(to)
         removeVertex(from)
-        var newVertexName = from.id + to.id
+        var newVertexName = "${from.id}_${to.id}"
         while (hasVertex(GraphVertex(newVertexName))) {
             newVertexName += "'"
         }
